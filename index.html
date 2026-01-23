@@ -3,15 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Julian Mackrel | GeoCities Resume</title>
+    <title>Julian Mackrel | Cyberpunk Resume</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Share+Tech+Mono&display=swap"
+    />
     <style>
       :root {
-        --hot-pink: #ff2fb2;
-        --acid-green: #39ff14;
-        --bright-cyan: #00f5ff;
-        --deep-purple: #4b0082;
-        --sun-yellow: #ffee00;
-        --ink: #0a0a0a;
+        --neon-cyan: #20f2ff;
+        --neon-magenta: #ff3bd4;
+        --neon-lime: #a6ff00;
+        --neon-amber: #ffb200;
+        --neon-violet: #8a4dff;
+        --panel: rgba(6, 9, 20, 0.85);
+        --ink: #05050b;
+        --grid: rgba(32, 242, 255, 0.15);
       }
 
       * {
@@ -20,54 +26,89 @@
 
       body {
         margin: 0;
-        font-family: "Comic Sans MS", "Comic Sans", "Courier New", cursive;
-        color: #fff;
+        font-family: "Share Tech Mono", "Courier New", monospace;
+        color: #e9faff;
         background:
+          linear-gradient(120deg, rgba(8, 20, 42, 0.9), rgba(2, 2, 10, 0.95)),
+          radial-gradient(circle at top, rgba(138, 77, 255, 0.25), transparent 60%),
           repeating-linear-gradient(
-            45deg,
-            rgba(255, 47, 178, 0.2),
-            rgba(255, 47, 178, 0.2) 12px,
-            rgba(0, 245, 255, 0.18) 12px,
-            rgba(0, 245, 255, 0.18) 24px
+            0deg,
+            transparent 0,
+            transparent 22px,
+            var(--grid) 23px,
+            transparent 24px
           ),
-          radial-gradient(circle at top, #1c003d, #000 60%);
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 22px,
+            var(--grid) 23px,
+            transparent 24px
+          );
         min-height: 100vh;
       }
 
       a {
-        color: var(--sun-yellow);
+        color: var(--neon-amber);
       }
 
       .page {
         max-width: 960px;
         margin: 0 auto;
-        padding: 24px;
+        padding: 28px;
+        border: 2px solid rgba(32, 242, 255, 0.5);
+        box-shadow:
+          0 0 20px rgba(32, 242, 255, 0.25),
+          inset 0 0 30px rgba(255, 59, 212, 0.08);
+        background: rgba(5, 5, 12, 0.5);
+        backdrop-filter: blur(2px);
       }
 
       .marquee {
-        border: 3px dashed var(--acid-green);
-        background: #000;
-        color: var(--sun-yellow);
+        border: 2px solid var(--neon-lime);
+        background: rgba(5, 5, 12, 0.8);
+        color: var(--neon-lime);
         padding: 8px 12px;
         margin-bottom: 16px;
         text-transform: uppercase;
         letter-spacing: 2px;
         font-weight: bold;
+        box-shadow: 0 0 12px rgba(166, 255, 0, 0.4);
       }
 
       .header {
-        border: 5px solid var(--hot-pink);
-        background: rgba(0, 0, 0, 0.7);
+        border: 2px solid var(--neon-magenta);
+        background: var(--panel);
         padding: 16px;
-        box-shadow: 0 0 20px var(--bright-cyan);
+        box-shadow:
+          0 0 20px rgba(32, 242, 255, 0.4),
+          0 0 40px rgba(255, 59, 212, 0.2);
         text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          180deg,
+          transparent 0,
+          transparent 2px,
+          rgba(32, 242, 255, 0.06) 3px
+        );
+        pointer-events: none;
       }
 
       .header h1 {
         margin: 0;
         font-size: 40px;
-        color: var(--bright-cyan);
-        text-shadow: 2px 2px var(--hot-pink);
+        font-family: "Orbitron", "Share Tech Mono", monospace;
+        color: var(--neon-cyan);
+        text-shadow:
+          0 0 10px rgba(32, 242, 255, 0.8),
+          0 0 24px rgba(255, 59, 212, 0.8);
       }
 
       .header p {
@@ -84,10 +125,10 @@
       }
 
       .badge {
-        border: 2px solid #fff;
+        border: 1px solid rgba(32, 242, 255, 0.7);
         padding: 6px 12px;
-        background: #120027;
-        box-shadow: inset 0 0 10px var(--acid-green);
+        background: rgba(9, 12, 28, 0.9);
+        box-shadow: inset 0 0 12px rgba(166, 255, 0, 0.2);
         font-size: 12px;
         text-transform: uppercase;
       }
@@ -100,21 +141,25 @@
       }
 
       .card {
-        background: rgba(0, 0, 0, 0.75);
-        border: 4px double var(--bright-cyan);
+        background: var(--panel);
+        border: 2px solid rgba(32, 242, 255, 0.6);
         padding: 14px 16px;
-        box-shadow: 0 0 12px var(--deep-purple);
+        box-shadow:
+          0 0 18px rgba(32, 242, 255, 0.2),
+          inset 0 0 18px rgba(138, 77, 255, 0.1);
+        position: relative;
       }
 
       .card h2 {
         margin-top: 0;
-        color: var(--acid-green);
-        text-shadow: 1px 1px var(--deep-purple);
+        font-family: "Orbitron", "Share Tech Mono", monospace;
+        color: var(--neon-lime);
+        text-shadow: 0 0 10px rgba(166, 255, 0, 0.5);
       }
 
       .card h3 {
         margin-bottom: 6px;
-        color: var(--sun-yellow);
+        color: var(--neon-amber);
       }
 
       .list-unstyled {
@@ -128,7 +173,7 @@
       }
 
       .timeline {
-        border-left: 4px solid var(--hot-pink);
+        border-left: 3px solid var(--neon-magenta);
         padding-left: 12px;
       }
 
@@ -139,36 +184,38 @@
       .timeline-item span {
         display: block;
         font-size: 12px;
-        color: var(--bright-cyan);
+        color: var(--neon-cyan);
       }
 
       .footer {
         margin-top: 24px;
         text-align: center;
         font-size: 12px;
-        color: #ccc;
+        color: rgba(233, 250, 255, 0.7);
       }
 
       .blink {
-        animation: blink 1s infinite;
+        animation: pulse 1.2s infinite;
       }
 
-      @keyframes blink {
+      @keyframes pulse {
         50% {
-          opacity: 0.2;
+          opacity: 0.35;
+          text-shadow: 0 0 12px rgba(255, 59, 212, 0.9);
         }
       }
 
       .cta {
         display: inline-block;
         padding: 8px 16px;
-        border: 3px solid var(--sun-yellow);
-        background: #000;
-        color: var(--sun-yellow);
+        border: 2px solid var(--neon-cyan);
+        background: rgba(5, 5, 12, 0.8);
+        color: var(--neon-cyan);
         text-decoration: none;
         margin-top: 12px;
         text-transform: uppercase;
         letter-spacing: 1px;
+        box-shadow: 0 0 14px rgba(32, 242, 255, 0.5);
       }
 
       @media (max-width: 840px) {
@@ -186,14 +233,14 @@
     <div class="page">
       <div class="marquee">
         <marquee behavior="alternate" scrollamount="6">
-          Welcome to Julian's Totally Rad GeoPortfolio!
+          Welcome to Julian's Neon Cyber-Portfolio!
         </marquee>
       </div>
 
       <header class="header">
         <h1>Julian Mackrel</h1>
         <p>Head of Solutions Engineering, AMER · Notion</p>
-        <p class="blink">Work smarter, not just harder ✨</p>
+        <p class="blink">Work smarter, not just harder ⚡</p>
         <div class="badge-row">
           <span class="badge">Leadership</span>
           <span class="badge">Public Speaking</span>
@@ -343,7 +390,7 @@
       </section>
 
       <div class="footer">
-        <p>Powered by the magic of dial-up nostalgia ✨</p>
+        <p>Powered by neon circuits and late-night ambition ⚡</p>
       </div>
     </div>
   </body>
