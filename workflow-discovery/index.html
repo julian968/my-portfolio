@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Workflow Discovery Exercise</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --ink: #0f0e0b;
+    --paper: #f5f0e8;
+    --cream: #ede7d5;
+    --rust: #c4440a;
+    --rust-light: #f0d4c8;
+    --steel: #3a4a52;
+    --muted: #7a7060;
+    --rule: #d5cfc0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── HEADER BAND ── */
+  .header-band {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 48px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .header-title em {
+    font-style: italic;
+    color: #d4845a;
+  }
+  .timer-block {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .timer-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .timer-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 38px;
+    font-weight: 500;
+    color: var(--paper);
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .timer-display:hover { color: #d4845a; }
+  .timer-display.running { color: #6dbf8a; }
+  .timer-display.warning { color: #f0c040; }
+  .timer-display.danger { color: #e05050; }
+  .timer-controls {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 6px;
+  }
+  .timer-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid #444;
+    color: var(--muted);
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+  .timer-btn:hover { border-color: #d4845a; color: #d4845a; }
+
+  /* ── WORKFLOW CARD ── */
+  .workflow-card {
+    background: var(--rust);
+    color: var(--paper);
+    margin: 0 48px;
+    margin-top: -1px;
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px 32px;
+    align-items: center;
+    border-bottom: 3px solid var(--ink);
+    opacity: 0;
+    transform: translateY(-8px);
+    animation: fadeSlide 0.5s 0.1s ease forwards;
+  }
+  .wf-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    grid-column: 1 / -1;
+  }
+  .wf-name {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .wf-description {
+    font-size: 14px;
+    font-style: italic;
+    opacity: 0.85;
+    line-height: 1.5;
+  }
+  .wf-badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 6px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    border-radius: 2px;
+    align-self: center;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    padding: 36px 48px 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+
+  /* ── SECTION CARDS ── */
+  .section-card {
+    background: white;
+    border: 1.5px solid var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  .section-card:nth-child(1) { animation: fadeSlide 0.4s 0.15s ease forwards; }
+  .section-card:nth-child(2) { animation: fadeSlide 0.4s 0.25s ease forwards; }
+  .section-card:nth-child(3) { animation: fadeSlide 0.4s 0.35s ease forwards; }
+  .section-card:nth-child(4) { animation: fadeSlide 0.4s 0.45s ease forwards; }
+  .section-card.full-width { grid-column: 1 / -1; animation: fadeSlide 0.4s 0.55s ease forwards; }
+
+  .card-header {
+    background: var(--cream);
+    border-bottom: 1.5px solid var(--rule);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--rust);
+    letter-spacing: 0.1em;
+    min-width: 24px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--steel);
+  }
+  .card-body {
+    padding: 18px 20px;
+  }
+
+  /* ── ROLES ── */
+  .roles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .role-pill {
+    border: 1.5px solid var(--rule);
+    border-radius: 2px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .role-icon { font-size: 20px; margin-bottom: 6px; }
+  .role-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--steel);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .role-desc {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* ── PHASE STEPS ── */
+  .phases {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .phase {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 0 14px;
+    position: relative;
+  }
+  .phase:not(:last-child) .phase-line {
+    position: absolute;
+    left: 20px;
+    top: 38px;
+    bottom: 0;
+    width: 2px;
+    background: var(--rule);
+  }
+  .phase-time-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px;
+  }
+  .phase-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--rust);
+    border: 2px solid white;
+    outline: 2px solid var(--rust);
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .phase-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+    white-space: nowrap;
+  }
+  .phase-content {
+    padding: 8px 0 16px;
+  }
+  .phase-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .phase-sub {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.45;
+  }
+
+  /* ── DISCOVERY AREAS ── */
+  .discovery-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .disc-area {
+    border-left: 3px solid var(--rust);
+    padding: 8px 12px;
+    background: var(--paper);
+  }
+  .disc-area-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--rust);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .disc-area ul {
+    list-style: none;
+    padding: 0;
+  }
+  .disc-area ul li {
+    font-size: 12px;
+    color: var(--steel);
+    padding: 2px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.4;
+  }
+  .disc-area ul li::before {
+    content: '—';
+    color: var(--muted);
+    flex-shrink: 0;
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  /* ── DELIVERABLES ── */
+  .deliverables-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .deliv {
+    border: 1.5px solid var(--rule);
+    border-radius: 2px;
+    padding: 14px;
+  }
+  .deliv-icon { font-size: 22px; margin-bottom: 8px; }
+  .deliv-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .deliv-desc {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.45;
+  }
+
+  /* ── QUESTIONS BANK (interactive) ── */
+  .questions-intro {
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .q-categories {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .q-cat-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border: 1.5px solid var(--rule);
+    background: white;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .q-cat-btn:hover, .q-cat-btn.active {
+    border-color: var(--rust);
+    color: var(--rust);
+    background: var(--rust-light);
+  }
+  .q-list {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .q-list.visible { display: flex; }
+  .q-item {
+    font-size: 13px;
+    color: var(--steel);
+    padding: 8px 12px;
+    background: var(--paper);
+    border-radius: 2px;
+    line-height: 1.5;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .q-item:hover { background: var(--cream); }
+  .q-item.checked { opacity: 0.45; text-decoration: line-through; }
+  .q-item-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--rust);
+    min-width: 20px;
+    padding-top: 2px;
+  }
+
+  /* ── OUTPUT TEMPLATE (checklist) ── */
+  .output-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .output-block {
+    border: 1.5px dashed var(--rule);
+    border-radius: 2px;
+    padding: 14px 16px;
+  }
+  .output-block-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--rust);
+    margin-bottom: 10px;
+  }
+  .output-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .output-line:last-child { border-bottom: none; }
+  .output-line input[type=checkbox] {
+    accent-color: var(--rust);
+    flex-shrink: 0;
+  }
+  .output-line.done { color: var(--ink); font-style: normal; text-decoration: line-through; opacity: 0.5; }
+
+  /* ── FOOTER ── */
+  .footer-band {
+    background: var(--cream);
+    border-top: 1.5px solid var(--rule);
+    padding: 16px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  @keyframes fadeSlide {
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header-band">
+  <div>
+    <div class="header-eyebrow">Notion SE · Workshop Exercise</div>
+    <div class="header-title">Workflow <em>Discovery</em><br>Sprint</div>
+  </div>
+  <div class="timer-block">
+    <div class="timer-label">Session Timer</div>
+    <div class="timer-display" id="timerDisplay" title="Click to start/pause">30:00</div>
+    <div class="timer-controls">
+      <button class="timer-btn" onclick="startTimer()">Start</button>
+      <button class="timer-btn" onclick="pauseTimer()">Pause</button>
+      <button class="timer-btn" onclick="resetTimer()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKFLOW CARD -->
+<div class="workflow-card">
+  <div class="wf-label">Your Assigned Workflow</div>
+  <div class="wf-name">Weekly Pipeline Review Automation</div>
+  <div class="wf-description">A sales ops workflow that aggregates deal data from Salesforce, formats a summary report, and distributes it to regional sales leaders every Monday morning.</div>
+  <div class="wf-badge">Group A</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- ROLES -->
+  <div class="section-card">
+    <div class="card-header">
+      <span class="card-num">01</span>
+      <span class="card-title">Team Roles</span>
+    </div>
+    <div class="card-body">
+      <div class="roles-grid">
+        <div class="role-pill">
+          <div class="role-icon">🔍</div>
+          <div class="role-name">SE</div>
+          <div class="role-desc">Leads discovery. Asks questions, listens, digs deeper.</div>
+        </div>
+        <div class="role-pill">
+          <div class="role-icon">🏢</div>
+          <div class="role-name">Prospect</div>
+          <div class="role-desc">Plays the customer. Knows the workflow. Answers honestly.</div>
+        </div>
+        <div class="role-pill">
+          <div class="role-icon">📋</div>
+          <div class="role-name">Scribe</div>
+          <div class="role-desc">Takes notes, flags gaps, tracks what's still unclear.</div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--muted);font-style:italic;margin-top:12px;line-height:1.5;">
+        Rotate roles halfway through so everyone practices asking questions. The Scribe owns the final output document.
+      </p>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="section-card">
+    <div class="card-header">
+      <span class="card-num">02</span>
+      <span class="card-title">30-Minute Structure</span>
+    </div>
+    <div class="card-body">
+      <div class="phases">
+        <div class="phase">
+          <div class="phase-line"></div>
+          <div class="phase-time-col"><div class="phase-dot"></div><div class="phase-time">0:00</div></div>
+          <div class="phase-content">
+            <div class="phase-label">Define the Outcome</div>
+            <div class="phase-sub">Before asking anything — what does success look like? What's the artifact? What's the business impact? Write it down first.</div>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-line"></div>
+          <div class="phase-time-col"><div class="phase-dot"></div><div class="phase-time">5:00</div></div>
+          <div class="phase-content">
+            <div class="phase-label">Discovery Round 1</div>
+            <div class="phase-sub">SE asks, Prospect answers, Scribe captures. Focus on systems, data sources, and current state.</div>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-line"></div>
+          <div class="phase-time-col"><div class="phase-dot"></div><div class="phase-time">15:00</div></div>
+          <div class="phase-content">
+            <div class="phase-label">Rotate Roles + Round 2</div>
+            <div class="phase-sub">Swap SE ↔ Prospect. New SE picks up where the last left off — go deeper on gaps and edge cases.</div>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="phase-time-col"><div class="phase-dot"></div><div class="phase-time">25:00</div></div>
+          <div class="phase-content">
+            <div class="phase-label">Synthesis + Prep Readout</div>
+            <div class="phase-sub">Scribe leads. Fill in the output template. Identify your top 3 open questions. Get ready to present back.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCOVERY AREAS -->
+  <div class="section-card full-width">
+    <div class="card-header">
+      <span class="card-num">03</span>
+      <span class="card-title">Discovery Areas &amp; Starter Questions</span>
+    </div>
+    <div class="card-body">
+      <p class="questions-intro">Use these as starting points — go deeper when something sounds interesting or unclear. Check off questions as you cover them. Rotate through categories.</p>
+      <div class="q-categories">
+        <button class="q-cat-btn active" onclick="showCategory('business')">Business Context</button>
+        <button class="q-cat-btn" onclick="showCategory('systems')">Systems &amp; Integrations</button>
+        <button class="q-cat-btn" onclick="showCategory('data')">Data &amp; Criteria</button>
+        <button class="q-cat-btn" onclick="showCategory('output')">Output &amp; Format</button>
+        <button class="q-cat-btn" onclick="showCategory('edge')">Edge Cases</button>
+      </div>
+
+      <div class="q-list visible" id="q-business">
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">01</span>Who currently owns this workflow — is it one person or shared across a team?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">02</span>What happens if this workflow breaks or is late — what's the downstream business impact?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">03</span>How long does this take today, and how much of it is manual?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">04</span>Who are the stakeholders and what do they actually do with the output?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">05</span>What does success look like — what's different when this workflow is working perfectly?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">06</span>Is there a version of this that already partially exists, or is it fully manual today?</div>
+      </div>
+      <div class="q-list" id="q-systems">
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">01</span>What tools or platforms are involved in this workflow today?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">02</span>Does data move between systems automatically or is someone copying it manually?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">03</span>Are there any systems that are restricted, read-only, or require special access?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">04</span>Is Notion already involved — and if so, where in the chain does it sit?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">05</span>Are there any approval steps or human-in-the-loop checkpoints built in?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">06</span>What authentication or permissions model does each system use?</div>
+      </div>
+      <div class="q-list" id="q-data">
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">01</span>Where does the source data live — one system or multiple?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">02</span>What specific fields or data points are required in the output?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">03</span>Is the data clean and structured, or does it need transformation before it's usable?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">04</span>Are there filters — date ranges, deal stages, territories — that scope what gets included?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">05</span>How frequently does the data update — real-time, daily, on a trigger?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">06</span>What happens if a required data field is missing or null?</div>
+      </div>
+      <div class="q-list" id="q-output">
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">01</span>What does the final artifact actually look like — a Notion page, a spreadsheet, a Slack message?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">02</span>Is the output consumed by a human, another system, or both?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">03</span>Does the output need to follow a specific template or format?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">04</span>How is the output delivered — pushed to the recipient, or pulled by them?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">05</span>Does anyone need to review or approve the output before it's distributed?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">06</span>Is there a record kept of previous outputs — versioning, history, audit trail?</div>
+      </div>
+      <div class="q-list" id="q-edge">
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">01</span>What happens if one of the source systems is down — does the workflow fail silently or loudly?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">02</span>Are there exceptions or one-off cases that the normal process doesn't handle well?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">03</span>Does the workflow behave differently at end-of-quarter, or during high-volume periods?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">04</span>Are there any compliance, security, or data residency constraints we need to design around?</div>
+        <div class="q-item" onclick="toggleCheck(this)"><span class="q-item-num">05</span>If a step fails partway through, does it retry — or does someone have to restart manually?</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTPUT TEMPLATE -->
+  <div class="section-card full-width">
+    <div class="card-header">
+      <span class="card-num">04</span>
+      <span class="card-title">Output Capture — Fill This In Before You Present</span>
+    </div>
+    <div class="card-body">
+      <div class="output-grid">
+        <div class="output-block">
+          <div class="output-block-title">The Final Artifact</div>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> What it looks like (format, structure)</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Who receives it and how</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> What triggers it (schedule, event, manual)</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> What tool or system hosts/delivers it</label>
+        </div>
+        <div class="output-block">
+          <div class="output-block-title">Business Impact</div>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Time saved (estimated hours/week)</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Who benefits and how</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Risk reduced or error rate lowered</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Strategic outcome tied to a team goal</label>
+        </div>
+        <div class="output-block">
+          <div class="output-block-title">Systems Map</div>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> All source systems identified</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Data types and fields documented</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Integration method known (API, native, manual)</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Access/permissions requirements noted</label>
+        </div>
+        <div class="output-block">
+          <div class="output-block-title">Open Questions</div>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Top unanswered question #1</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Top unanswered question #2</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Top unanswered question #3</label>
+          <label class="output-line"><input type="checkbox" onchange="toggleLine(this)"/> Who owns answering each one</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELIVERABLES -->
+  <div class="section-card full-width">
+    <div class="card-header">
+      <span class="card-num">05</span>
+      <span class="card-title">What You're Presenting Back</span>
+    </div>
+    <div class="card-body">
+      <div class="deliverables-grid">
+        <div class="deliv">
+          <div class="deliv-icon">🗺️</div>
+          <div class="deliv-title">Workflow Narrative</div>
+          <div class="deliv-desc">Walk us through the workflow step by step — current state, as you discovered it. Systems → data → trigger → output.</div>
+        </div>
+        <div class="deliv">
+          <div class="deliv-icon">🎯</div>
+          <div class="deliv-title">Outcome Definition</div>
+          <div class="deliv-desc">One clear sentence each: what the final artifact is, and what business impact it drives.</div>
+        </div>
+        <div class="deliv">
+          <div class="deliv-icon">❓</div>
+          <div class="deliv-title">Key Learnings + Gaps</div>
+          <div class="deliv-desc">What surprised you? What did you not think to ask until late? What are your top 3 open questions?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer-band">
+  <span>Notion SE · Workflow Discovery Sprint</span>
+  <span>30-Minute Session · Groups of Three</span>
+  <span>Record your session · Take notes · Present back</span>
+</div>
+
+<script>
+  // ── TIMER ──
+  let totalSeconds = 30 * 60;
+  let remaining = totalSeconds;
+  let interval = null;
+  let running = false;
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateDisplay() {
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    const el = document.getElementById('timerDisplay');
+    el.textContent = `${pad(m)}:${pad(s)}`;
+    el.className = 'timer-display';
+    if (running) {
+      if (remaining <= 300) el.classList.add('danger');
+      else if (remaining <= 600) el.classList.add('warning');
+      else el.classList.add('running');
+    }
+  }
+
+  function startTimer() {
+    if (running) return;
+    running = true;
+    interval = setInterval(() => {
+      if (remaining <= 0) { clearInterval(interval); running = false; return; }
+      remaining--;
+      updateDisplay();
+    }, 1000);
+    updateDisplay();
+  }
+
+  function pauseTimer() {
+    clearInterval(interval);
+    running = false;
+    updateDisplay();
+  }
+
+  function resetTimer() {
+    clearInterval(interval);
+    running = false;
+    remaining = totalSeconds;
+    updateDisplay();
+  }
+
+  document.getElementById('timerDisplay').addEventListener('click', () => {
+    running ? pauseTimer() : startTimer();
+  });
+
+  // ── QUESTION CATEGORIES ──
+  function showCategory(cat) {
+    document.querySelectorAll('.q-list').forEach(el => el.classList.remove('visible'));
+    document.querySelectorAll('.q-cat-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(`q-${cat}`).classList.add('visible');
+    event.target.classList.add('active');
+  }
+
+  function toggleCheck(el) {
+    el.classList.toggle('checked');
+  }
+
+  // ── OUTPUT CHECKLIST ──
+  function toggleLine(checkbox) {
+    const label = checkbox.closest('.output-line');
+    label.classList.toggle('done', checkbox.checked);
+  }
+</script>
+</body>
+</html>
