@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SE Request Validation — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --border: #e5e5e3;
+    --text: #1a1a19;
+    --muted: #787774;
+    --accent: #2e75b6;
+    --t1: #f5a623;
+    --t2: #e05252;
+    --t3: #9b59b6;
+    --t4: #c0392b;
+    --t5: #27ae60;
+    --clean: #2980b9;
+    --qual-green: #27ae60;
+    --qual-red: #e05252;
+    --radius: 8px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--text);
+    color: white;
+    padding: 20px 32px 16px;
+    display: flex;
+    align-items: flex-end;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .header-title { flex: 1; min-width: 200px; }
+  .header-title h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .header-title p { font-size: 13px; color: #aaa; margin-top: 2px; }
+
+  .kpis { display: flex; gap: 24px; flex-wrap: wrap; }
+  .kpi { text-align: center; }
+  .kpi-val { font-size: 26px; font-weight: 700; line-height: 1; }
+  .kpi-label { font-size: 11px; color: #999; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-val.green { color: #4ade80; }
+  .kpi-val.orange { color: #fb923c; }
+
+  /* ── Filters ── */
+  .filters {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+  .filter-select {
+    font-size: 13px;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+  .reset-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: auto;
+  }
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Active filter pill ── */
+  .active-filter {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #e8f0fe; color: var(--accent);
+    border: 1px solid #b3c8f8;
+    border-radius: 20px; padding: 3px 10px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+  }
+  .active-filter:hover { background: #d0e3fd; }
+
+  /* ── Main layout ── */
+  .main { padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* ── Chart grid ── */
+  .chart-row { display: grid; gap: 16px; }
+  .chart-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .chart-row.cols-3 { grid-template-columns: 2fr 1fr 1fr; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.2px;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .chart-wrap { position: relative; }
+  .chart-wrap.h200 { height: 200px; }
+  .chart-wrap.h240 { height: 240px; }
+  .chart-wrap.h280 { height: 280px; }
+  .chart-wrap.h320 { height: 320px; }
+
+  /* ── Legend ── */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); cursor: pointer; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── Table ── */
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .table-count { font-size: 12px; color: var(--muted); }
+
+  .table-wrap { overflow-x: auto; max-height: 380px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    background: var(--bg);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border);
+    position: sticky; top: 0; z-index: 1;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; cursor: default; }
+  tbody tr:hover { background: #f9f9f8; }
+  tbody td { padding: 8px 10px; vertical-align: middle; }
+
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-qual { background: #dcfce7; color: #166534; }
+  .badge-notqual { background: #fee2e2; color: #991b1b; }
+
+  .trend-tag {
+    display: inline-flex; align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    margin: 1px;
+    color: white;
+  }
+  .tag-t1 { background: var(--t1); }
+  .tag-t2 { background: var(--t2); }
+  .tag-t3 { background: var(--t3); }
+  .tag-t4 { background: var(--t4); }
+  .tag-t5 { background: var(--t5); }
+  .tag-clean { background: #94a3b8; color: white; }
+
+  .opp-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  /* ── Trend breakdown bar ── */
+  .mini-bar-wrap { display: flex; height: 8px; border-radius: 4px; overflow: hidden; width: 100%; gap: 1px; }
+  .mini-bar-seg { height: 100%; transition: width 0.3s; }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .chart-row.cols-2, .chart-row.cols-3 { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    .header { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <h1>SE Request Validation — Trends Dashboard</h1>
+    <p id="header-sub">Loading...</p>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-val" id="kpi-total">—</div><div class="kpi-label">Total Requests</div></div>
+    <div class="kpi"><div class="kpi-val green" id="kpi-qual">—</div><div class="kpi-label">Qualified</div></div>
+    <div class="kpi"><div class="kpi-val orange" id="kpi-notqual">—</div><div class="kpi-label">Not Qualified</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpi-qualrate" style="color:#fb923c;">—</div><div class="kpi-label">Qual Rate</div></div>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-label">Segment</span>
+    <select class="filter-select" id="f-segment" onchange="applyFilters()">
+      <option value="">All</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Owner</span>
+    <select class="filter-select" id="f-owner" onchange="applyFilters()">
+      <option value="">All</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Status</span>
+    <select class="filter-select" id="f-qual" onchange="applyFilters()">
+      <option value="">All</option>
+      <option value="Qualified">Qualified</option>
+      <option value="Not Qualified">Not Qualified</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Trend</span>
+    <select class="filter-select" id="f-trend" onchange="applyFilters()">
+      <option value="">All</option>
+    </select>
+  </div>
+  <button class="reset-btn" onclick="resetFilters()">✕ Reset filters</button>
+  <div id="active-pill" style="display:none;"></div>
+</div>
+
+<div class="main">
+
+  <!-- Row 1: Top Trends + Qual Rate -->
+  <div class="chart-row cols-3">
+    <div class="card">
+      <div class="card-title">Top 5 Gap Trends</div>
+      <div class="card-sub">Count of requests with each gap — click to filter</div>
+      <div class="chart-wrap h240"><canvas id="trendBarChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Qualification Rate</div>
+      <div class="card-sub">Qualified vs Not Qualified</div>
+      <div class="chart-wrap h240"><canvas id="qualDonut"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Requests by Segment</div>
+      <div class="card-sub">Volume split across segments</div>
+      <div class="chart-wrap h240"><canvas id="segmentBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Trends by Segment + Qual by Segment -->
+  <div class="chart-row cols-2">
+    <div class="card">
+      <div class="card-title">Gap Trends by Segment</div>
+      <div class="card-sub">How often each gap appears within each segment</div>
+      <div class="chart-wrap h280"><canvas id="trendBySegChart"></canvas></div>
+      <div class="legend" id="trend-legend"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Qualification Rate by Segment</div>
+      <div class="card-sub">% of requests qualified per segment</div>
+      <div class="chart-wrap h280"><canvas id="qualBySegChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Trends by Owner -->
+  <div class="chart-row" style="grid-template-columns:1fr;">
+    <div class="card">
+      <div class="card-title">Gap Trends by Owner</div>
+      <div class="card-sub">Total requests per owner, colored by their most common gap — click a bar to filter by owner</div>
+      <div class="chart-wrap h320"><canvas id="ownerChart"></canvas></div>
+      <div class="legend" id="owner-legend"></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    <div class="table-header">
+      <div class="card-title" style="margin:0;">Request Detail</div>
+      <div class="table-count" id="table-count"></div>
+    </div>
+    <div class="table-wrap">
+      <table id="detail-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Opportunity</th>
+            <th>Owner</th>
+            <th>Segment</th>
+            <th>Status</th>
+            <th>Gap Trends</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Raw Data ──────────────────────────────────────────────
+const RAW = [{"opportunity":"Global X ETFs","owner":"Vamsi Manne","segment":"SMB","num":"116","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Westward360-Enterprise 150 seats | NetNew","owner":"Amy Nguyen","segment":"SMB","num":"115","qualified":"Qualified","trends":["T2: Why Do Anything Weak","T5: Impact Not Quantified"]},{"opportunity":"Help Scout","owner":"Amanda Handlos","segment":"SMB","num":"112","qualified":"Qualified","trends":["No Gap Identified"]},{"opportunity":"Regal Voice","owner":"Alexis Honighausen","segment":"SMB","num":"108","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"Thanks 35 Seats NN","owner":"Sam Conklin","segment":"SMB","num":"107","qualified":"Qualified","trends":["T2: Why Do Anything Weak","T5: Impact Not Quantified"]},{"opportunity":"Planable - +205 Business Upgrade","owner":"Khalil Hamrouni","segment":"SMB","num":"106","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Anrok_CK - Enterprise -150 seats","owner":"Kendyl Stewart","segment":"SMB","num":"105","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"AdaptiveHH - Enterprise Consolidation","owner":"Amanda Handlos","segment":"SMB","num":"103","qualified":"Not Qualified","trends":["T1: Missing Why Now","T3: Why Notion Weak"]},{"opportunity":"(BIG BET SUBMISSION) FY27 Nesto | 50 seats | NetNew","owner":"Amy Nguyen","segment":"SMB","num":"104","qualified":"Not Qualified","trends":["T1: Missing Why Now"]},{"opportunity":"FY27 Leo Berwick AI - Enterprise - 120 | Net New","owner":"Katherine Chuang","segment":"SMB","num":"102","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak"]},{"opportunity":"FY27 Armra - ENT- 100 seats | Net New","owner":"Kendyl Stewart","segment":"SMB","num":"101","qualified":"Not Qualified","trends":["T1: Missing Why Now","T5: Impact Not Quantified"]},{"opportunity":"FY27 The Retirement Planning Group - Enterprise - 200 Users - Upgrade","owner":"Jalen Brown","segment":"SMB","num":"98","qualified":"Qualified","trends":["T3: Why Notion Weak","T5: Impact Not Quantified"]},{"opportunity":"ClearCompany","owner":"Alexis Honighausen","segment":"SMB","num":"97","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"Notion - Prime Intellect","owner":"Caroline Koerschner","segment":"SMB","num":"95","qualified":"Qualified","trends":["No Gap Identified"]},{"opportunity":"FY27 Navina - ENT- 241 Seats | Upgrade","owner":"Amanda Handlos","segment":"SMB","num":"93","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"FY27 RSUI Group - ENT - 70 | NetNew","owner":"Kyle White","segment":"SMB","num":"92","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Navina - ENT- 241 Seats | Upgrade","owner":"Amanda Handlos","segment":"SMB","num":"91","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak","T4: Three Whys Absent"]},{"opportunity":"FY27 Navina - ENT- 241 Seats | Upgrade","owner":"Amanda Handlos","segment":"SMB","num":"90","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"TimeDoc Health","owner":"Kendyl Stewart","segment":"SMB","num":"89","qualified":"Not Qualified","trends":["T1: Missing Why Now"]},{"opportunity":"Spotdraft - ENT - NetNew","owner":"Kendyl Stewart","segment":"SMB","num":"87","qualified":"Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"FY27 Atlas Mechanical Inc. - Business - ~170 seats | NetNew","owner":"Janai Wolz","segment":"SMB","num":"88","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"FY27 True Vet Solutions - Ent - 100 | Net New","owner":"Ariel Cherng","segment":"SMB","num":"85","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"BIG BET FY27 Applecart - Enterprise - 100 | NetNew","owner":"Amy Nguyen","segment":"SMB","num":"86","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"Arcana | ENT | 250 Upsell","owner":"Sam Cole","segment":"SMB","num":"81","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 - Thesis - BIZ AI - 135 UP","owner":"Allison Taylor","segment":"SMB","num":"77","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"UBP Amendment - Prezi","owner":"Katherine Chuang","segment":"SMB","num":"75","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Socket - Enterprise - 102 | Upgrade","owner":"Amy Nguyen","segment":"SMB","num":"76","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Ascend - ENT AI - 100 seats NN","owner":"Allison Taylor","segment":"SMB","num":"74","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"David Zwirner Inc. - 00003538 Renewal - 2025","owner":"Megan Graham","segment":"SMB","num":"70","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Chief","owner":"Alexis Honighausen","segment":"SMB","num":"71","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Socure - Renewal Opportunity","owner":"Khalil Hamrouni","segment":"SMB","num":"69","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Dashlane Big Bet Submission","owner":"Amy Nguyen","segment":"SMB","num":"67","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T4: Three Whys Absent"]},{"opportunity":"FY27","owner":"Katherine Chuang","segment":"SMB","num":"66","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Bidease","owner":"Kendyl Stewart","segment":"SMB","num":"65","qualified":"Qualified","trends":["T5: Impact Not Quantified"]},{"opportunity":"Curri","owner":"Aleksander Weltin","segment":"SMB","num":"64","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"ThunderCat Tech","owner":"Amy Nguyen","segment":"SMB","num":"60","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak"]},{"opportunity":"Security Questionnaire for Diameter Capital","owner":"Tevin Dones","segment":"SMB","num":"61","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Corva Enterprise","owner":"William Cooksey","segment":"SMB","num":"56","qualified":"Qualified","trends":["No Gap Identified"]},{"opportunity":"FY27 Blockdaemon","owner":"Kendyl Stewart","segment":"SMB","num":"52","qualified":"Not Qualified","trends":["T1: Missing Why Now","T3: Why Notion Weak","T4: Three Whys Absent"]},{"opportunity":"Qventus - Sales Assisted Account","owner":"Brittney Conner","segment":"SMB","num":"50","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T4: Three Whys Absent"]},{"opportunity":"FY27 Cube Software - ENT - NetNew","owner":"Alex Desmarais","segment":"SMB","num":"51","qualified":"Qualified","trends":["No Gap Identified"]},{"opportunity":"PlanetDDS","owner":"Tevin Dones","segment":"SMB","num":"48","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Spencer Technologies - ENT - 200 seats | NetNew","owner":"Zachary Schaeffer","segment":"SMB","num":"49","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"VRIFY","owner":"Kendyl Stewart","segment":"SMB","num":"47","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"Coast Enterprise 110 Seat NN","owner":"Sam Conklin","segment":"SMB","num":"43","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"Faherty Brand - Net New (update)","owner":"Megan Coll","segment":"SMB","num":"42","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Faherty Brand - Net New","owner":"Megan Coll","segment":"SMB","num":"41","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T4: Three Whys Absent"]},{"opportunity":"FY27 London Hydro - ENT - 100 seats | NetNew","owner":"Aleksander Weltin","segment":"SMB","num":"39","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak"]},{"opportunity":"FY27 Cents - Ent - NetNew","owner":"Alex Desmarais","segment":"SMB","num":"40","qualified":"Qualified","trends":["No Gap Identified"]},{"opportunity":"FY27 Matrix Pointe Software - Business - 20 seats | NetNew","owner":"Claire Wagner","segment":"SMB","num":"36","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Ove Decors - Ent - 120 | Upsell","owner":"Brittney Conner","segment":"SMB","num":"35","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak"]},{"opportunity":"FY27 Tapcart - Enterprise - 65 seats | NetNew","owner":"Claire Wagner","segment":"SMB","num":"31","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Morning Brew - 00004396 Renewal - 2027","owner":"Vamsi Manne","segment":"SMB","num":"30","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Kenect - ENT AI - 60 NN","owner":"Allison Taylor","segment":"SMB","num":"29","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"Chili Piper","owner":"Kendyl Stewart","segment":"SMB","num":"27","qualified":"Not Qualified","trends":["T3: Why Notion Weak"]},{"opportunity":"Roots.ai - NN - 40 - ENT","owner":"Aleksander Weltin","segment":"SMB","num":"26","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Tufin - ENT - 60 | Net New","owner":"Sam Cole","segment":"SMB","num":"23","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T4: Three Whys Absent"]},{"opportunity":"FY27 Partners Real Estate - Business - ENT ~300 seats | NetNew","owner":"Amanda Handlos","segment":"SMB","num":"22","qualified":"Not Qualified","trends":["T3: Why Notion Weak"]},{"opportunity":"Ontop","owner":"Tevin Dones","segment":"SMB","num":"16","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"Aurora Cannabis - Ent","owner":"Kendyl Stewart","segment":"SMB","num":"15","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"Centralreach-Land","owner":"Janai Wolz","segment":"SMB","num":"10","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Ove Decors - Ent - 120 | Upsell","owner":"Brittney Conner","segment":"SMB","num":"9","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Pilot - ENT AI - 75 NN","owner":"Allison Taylor","segment":"SMB","num":"8","qualified":"Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"FY27 Patch - ENT80 | UPSELL","owner":"Katherine Chuang","segment":"SMB","num":"4","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"FY27 Kobie - Bus - NetNew","owner":"Khalil Hamrouni","segment":"SMB","num":"3","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"PathAI","owner":"Alexis Honighausen","segment":"SMB","num":"1","qualified":"Qualified","trends":["No Gap Identified"]},{"opportunity":"Sand Technology - Legal Depository","owner":"Dan Suh","segment":"Mid-Market","num":"114","qualified":"Not Qualified","trends":["T1: Missing Why Now","T3: Why Notion Weak"]},{"opportunity":"Huge Inc","owner":"Neema Rashidee","segment":"Mid-Market","num":"113","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 McKesson - 30 seats CorpDev 12 month \"Pilot\"","owner":"Dom Leyden","segment":"Mid-Market","num":"111","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"FY27 Avant - ENT - 300 Seats | Early Renewal","owner":"Matthew McCullough","segment":"Mid-Market","num":"110","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"Uniphore - Net New 40 seats","owner":"Dom Leyden","segment":"Mid-Market","num":"109","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 iFit - ENT 70 seats - Net New","owner":"Frederic Gras","segment":"Mid-Market","num":"99","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 iFit - ENT 70 seats - Net New","owner":"Frederic Gras","segment":"Mid-Market","num":"96","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Navina - ENT- 241 Seats | Upgrade","owner":"Amanda Handlos","segment":"Mid-Market","num":"94","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak"]},{"opportunity":"WhiteCap","owner":"Dom Leyden","segment":"Mid-Market","num":"82","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Zuora","owner":"Kevin Beach","segment":"Mid-Market","num":"79","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"Bain Capital (Security Questionnaire)","owner":"Maria Barmettler","segment":"Mid-Market","num":"78","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Gong","owner":"Nikki Ryan","segment":"Mid-Market","num":"73","qualified":"Not Qualified","trends":["T3: Why Notion Weak"]},{"opportunity":"iRhythm","owner":"Nikki Ryan","segment":"Mid-Market","num":"72","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Electro Rent","owner":"Kevin Beach","segment":"Mid-Market","num":"62","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Checkr - Net New - Asana Rip and Replace","owner":"Natalie Bogardus","segment":"Mid-Market","num":"63","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"VertexOne - netnew AI","owner":"Kevin Beach","segment":"Mid-Market","num":"59","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Chargers - Ent - 40 - NN","owner":"Chloe Borgese","segment":"Mid-Market","num":"58","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Cymulate - ENT - 150 seats | NetNew","owner":"Megan Graham","segment":"Mid-Market","num":"57","qualified":"Not Qualified","trends":["T3: Why Notion Weak"]},{"opportunity":"FY27 Hivelocity - ENT - 124 seats - Net New","owner":"Amanda Handlos","segment":"Mid-Market","num":"55","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"Designit","owner":"Nikki Ryan","segment":"Mid-Market","num":"54","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"Weee! - Net New","owner":"Dan Suh","segment":"Mid-Market","num":"53","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Rockefeller Capital Management - ENT - 50 | NetNew","owner":"Nikki Ryan","segment":"Mid-Market","num":"44","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Convera - ENT 30 seats - Net New","owner":"Frederic Gras","segment":"Mid-Market","num":"45","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"SFCG - Net New","owner":"William Cooksey","segment":"Mid-Market","num":"37","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 Buildertrend - ENT - 40 seats | NetNew","owner":"Natalie Bogardus","segment":"Mid-Market","num":"38","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"Intezer","owner":"Laura Nguyen","segment":"Mid-Market","num":"34","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]},{"opportunity":"Sesame","owner":"Laura Nguyen","segment":"Mid-Market","num":"32","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"FY27 Elite Technologies - Business/Enterprise - 15 POC seats | NetNew","owner":"Dan Suh","segment":"Mid-Market","num":"28","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Mainstay - Enterprise Upgrade","owner":"Chloe Borgese","segment":"Mid-Market","num":"25","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Virta Health AI Add On","owner":"Chloe Borgese","segment":"Mid-Market","num":"24","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"Aurora Cannabis - Ent (1)","owner":"Dan Suh","segment":"Mid-Market","num":"14","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak","T4: Three Whys Absent"]},{"opportunity":"Alto Pharmacy - AI add on - Expansion","owner":"Chloe Borgese","segment":"Mid-Market","num":"12","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"FY27 AMC Networks - ENT - 200 seats | Net New","owner":"Maria Barmettler","segment":"Mid-Market","num":"11","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"Ole Interactive- 150 Net New","owner":"Mike Browne","segment":"Mid-Market","num":"7","qualified":"Qualified","trends":["No Gap Identified"]},{"opportunity":"Method","owner":"Nikki Ryan","segment":"Mid-Market","num":"6","qualified":"Not Qualified","trends":["T1: Missing Why Now","T3: Why Notion Weak"]},{"opportunity":"FY27 Harry's - ENT - 80 Seats | Add-on","owner":"Matthew McCullough","segment":"Mid-Market","num":"2","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"Tec de Monterrey - Enterprise 3000","owner":"Francisco Chang","segment":"Enterprise","num":"83","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"TELEFONICA | VIVO - 100 ENT","owner":"Francisco Chang","segment":"Enterprise","num":"84","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Chick-fil-A Corporate 1200 - FY27","owner":"John Kuhns","segment":"Enterprise","num":"80","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Urby - 00003861 Renewal - 2025","owner":"Vamsi Manne","segment":"Enterprise","num":"68","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Security Questionnaire for McKinsey","owner":"Christopher Swanson","segment":"Enterprise","num":"46","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Match Group Americas, LLC - Renewal - 2025","owner":"Carlos Cabrera","segment":"Enterprise","num":"33","qualified":"Not Qualified","trends":["No Gap Identified"]},{"opportunity":"CREDICORP CAPITAL COLOMBIA S.A. — Security Questionnaire","owner":"Neha Shah","segment":"Enterprise","num":"13","qualified":"Not Qualified","trends":["T4: Three Whys Absent"]},{"opportunity":"Not yet qualified","owner":"Carlos Cabrera","segment":"Enterprise","num":"5","qualified":"Not Qualified","trends":["T1: Missing Why Now","T2: Why Do Anything Weak","T3: Why Notion Weak"]},{"opportunity":"Match Group Americas, LLC - Renewal - 2025","owner":"Carlos Cabrera","segment":"Unknown","num":"21","qualified":"Not Qualified","trends":["T2: Why Do Anything Weak"]}];
+
+// ── Config ──────────────────────────────────────────────
+const TREND_COLORS = {
+  'T1: Missing Why Now':       '#f5a623',
+  'T2: Why Do Anything Weak':  '#e05252',
+  'T3: Why Notion Weak':       '#9b59b6',
+  'T4: Three Whys Absent':     '#c0392b',
+  'T5: Impact Not Quantified': '#27ae60',
+  'No Gap Identified':         '#94a3b8',
+};
+const TREND_LABELS_SHORT = {
+  'T1: Missing Why Now':       'T1: Missing Why Now',
+  'T2: Why Do Anything Weak':  'T2: Why Do Anything Weak',
+  'T3: Why Notion Weak':       'T3: Why Notion Weak',
+  'T4: Three Whys Absent':     'T4: Three Whys Absent',
+  'T5: Impact Not Quantified': 'T5: Impact Not Quantified',
+  'No Gap Identified':         'No Gap',
+};
+const TREND_TAGS = {
+  'T1: Missing Why Now':       'tag-t1',
+  'T2: Why Do Anything Weak':  'tag-t2',
+  'T3: Why Notion Weak':       'tag-t3',
+  'T4: Three Whys Absent':     'tag-t4',
+  'T5: Impact Not Quantified': 'tag-t5',
+  'No Gap Identified':         'tag-clean',
+};
+const TREND_ORDER = ['T2: Why Do Anything Weak','T3: Why Notion Weak','T4: Three Whys Absent','T1: Missing Why Now','T5: Impact Not Quantified'];
+const SEGMENTS_ORDER = ['SMB','Mid-Market','Enterprise'];
+const SEG_COLORS = { 'SMB':'#3b82f6','Mid-Market':'#8b5cf6','Enterprise':'#f59e0b','Unknown':'#94a3b8' };
+
+// ── State ──────────────────────────────────────────────
+let charts = {};
+let filterState = { segment:'', owner:'', qual:'', trend:'' };
+
+// ── Helpers ──────────────────────────────────────────────
+function getFiltered() {
+  return RAW.filter(r => {
+    if (filterState.segment && r.segment !== filterState.segment) return false;
+    if (filterState.owner && r.owner !== filterState.owner) return false;
+    if (filterState.qual && r.qualified !== filterState.qual) return false;
+    if (filterState.trend && !r.trends.includes(filterState.trend)) return false;
+    return true;
+  });
+}
+
+function count(data, key) {
+  const c = {};
+  data.forEach(r => { c[r[key]] = (c[r[key]]||0)+1; });
+  return c;
+}
+
+function countTrends(data) {
+  const c = {};
+  data.forEach(r => r.trends.forEach(t => { c[t]=(c[t]||0)+1; }));
+  return c;
+}
+
+// ── Init Filters ──────────────────────────────────────────────
+function initFilters() {
+  const segs = [...new Set(RAW.map(r=>r.segment))].filter(Boolean).sort();
+  const owners = [...new Set(RAW.map(r=>r.owner))].filter(Boolean).sort();
+  const trends = [...TREND_ORDER, 'No Gap Identified'];
+
+  const fSeg = document.getElementById('f-segment');
+  segs.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; fSeg.appendChild(o); });
+
+  const fOwner = document.getElementById('f-owner');
+  owners.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; fOwner.appendChild(o); });
+
+  const fTrend = document.getElementById('f-trend');
+  trends.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=TREND_LABELS_SHORT[s]||s; fTrend.appendChild(o); });
+}
+
+function applyFilters() {
+  filterState.segment = document.getElementById('f-segment').value;
+  filterState.owner   = document.getElementById('f-owner').value;
+  filterState.qual    = document.getElementById('f-qual').value;
+  filterState.trend   = document.getElementById('f-trend').value;
+  renderAll();
+}
+
+function resetFilters() {
+  filterState = { segment:'', owner:'', qual:'', trend:'' };
+  document.getElementById('f-segment').value = '';
+  document.getElementById('f-owner').value   = '';
+  document.getElementById('f-qual').value    = '';
+  document.getElementById('f-trend').value   = '';
+  renderAll();
+}
+
+function setFilter(key, val) {
+  filterState[key] = val;
+  const idMap = { segment:'f-segment', owner:'f-owner', qual:'f-qual', trend:'f-trend' };
+  document.getElementById(idMap[key]).value = val;
+  renderAll();
+}
+
+// ── Chart utilities ──────────────────────────────────────────────
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+const chartDefaults = {
+  plugins: { legend: { display:false } },
+  responsive: true,
+  maintainAspectRatio: false,
+};
+
+// ── KPIs ──────────────────────────────────────────────
+function renderKPIs(data) {
+  const total = data.length;
+  const qual  = data.filter(r=>r.qualified==='Qualified').length;
+  const notQ  = data.filter(r=>r.qualified==='Not Qualified').length;
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-qual').textContent  = qual;
+  document.getElementById('kpi-notqual').textContent = notQ;
+  document.getElementById('kpi-qualrate').textContent = total ? Math.round(qual/total*100)+'%' : '—';
+
+  // Active filters in sub text
+  const parts = [];
+  if (filterState.segment) parts.push(`Segment: ${filterState.segment}`);
+  if (filterState.owner)   parts.push(`Owner: ${filterState.owner}`);
+  if (filterState.qual)    parts.push(`Status: ${filterState.qual}`);
+  if (filterState.trend)   parts.push(`Trend: ${filterState.trend.split(':')[0]}`);
+  document.getElementById('header-sub').textContent = parts.length
+    ? `Filtered — ${parts.join(' · ')}`
+    : `All ${RAW.length} requests across all segments and owners`;
+}
+
+// ── Trend Bar ──────────────────────────────────────────────
+function renderTrendBar(data) {
+  destroyChart('trendBar');
+  const tc = countTrends(data);
+  const labels = TREND_ORDER;
+  const counts = labels.map(t=>tc[t]||0);
+  const colors = labels.map(t=>TREND_COLORS[t]);
+
+  const ctx = document.getElementById('trendBarChart').getContext('2d');
+  charts['trendBar'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.map(l => l.split(':')[0] + ': ' + l.split(':')[1].trim().split(' ').slice(0,3).join(' ')),
+      datasets: [{ data: counts, backgroundColor: colors, borderRadius: 4, borderSkipped: false }]
+    },
+    options: {
+      ...chartDefaults,
+      indexAxis: 'y',
+      onClick: (e, elements) => {
+        if (elements.length) {
+          const t = labels[elements[0].index];
+          setFilter('trend', filterState.trend === t ? '' : t);
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.raw} requests (${Math.round(ctx.raw/data.length*100)}%)`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#f0f0ee' }, ticks: { font: { size:11 } } },
+        y: { grid: { display:false }, ticks: { font: { size:11 } } }
+      }
+    }
+  });
+}
+
+// ── Qual Donut ──────────────────────────────────────────────
+function renderQualDonut(data) {
+  destroyChart('qualDonut');
+  const qual = data.filter(r=>r.qualified==='Qualified').length;
+  const notQ = data.filter(r=>r.qualified==='Not Qualified').length;
+
+  const ctx = document.getElementById('qualDonut').getContext('2d');
+  charts['qualDonut'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Qualified','Not Qualified'],
+      datasets: [{
+        data: [qual, notQ],
+        backgroundColor: ['#22c55e','#ef4444'],
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      cutout: '65%',
+      plugins: {
+        legend: { display:true, position:'bottom', labels:{ font:{size:11}, padding:10, boxWidth:12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/data.length*100)}%)` }}
+      },
+      onClick: (e, elements) => {
+        if (elements.length) {
+          const labels = ['Qualified','Not Qualified'];
+          const val = labels[elements[0].index];
+          setFilter('qual', filterState.qual === val ? '' : val);
+        }
+      }
+    }
+  });
+}
+
+// ── Segment Volume Bar ──────────────────────────────────────────────
+function renderSegmentBar(data) {
+  destroyChart('segmentBar');
+  const segs = SEGMENTS_ORDER.filter(s=>data.some(r=>r.segment===s));
+  const counts = segs.map(s=>data.filter(r=>r.segment===s).length);
+  const colors = segs.map(s=>SEG_COLORS[s]||'#94a3b8');
+
+  const ctx = document.getElementById('segmentBar').getContext('2d');
+  charts['segmentBar'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: segs,
+      datasets: [{ data: counts, backgroundColor: colors, borderRadius:4 }]
+    },
+    options: {
+      ...chartDefaults,
+      onClick: (e, elements) => {
+        if (elements.length) {
+          const s = segs[elements[0].index];
+          setFilter('segment', filterState.segment === s ? '' : s);
+        }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw} requests` }}
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:11}} },
+        y: { grid:{color:'#f0f0ee'}, ticks:{font:{size:11}} }
+      }
+    }
+  });
+}
+
+// ── Trends by Segment ──────────────────────────────────────────────
+function renderTrendBySeg(data) {
+  destroyChart('trendBySeg');
+  const segs = SEGMENTS_ORDER.filter(s=>data.some(r=>r.segment===s));
+  const datasets = TREND_ORDER.map(t => ({
+    label: t,
+    data: segs.map(s => {
+      const segData = data.filter(r=>r.segment===s);
+      return segData.filter(r=>r.trends.includes(t)).length;
+    }),
+    backgroundColor: TREND_COLORS[t],
+    borderRadius: 2,
+    borderSkipped: false,
+  }));
+
+  const ctx = document.getElementById('trendBySegChart').getContext('2d');
+  charts['trendBySeg'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: segs, datasets },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: { stacked: true, grid:{display:false}, ticks:{font:{size:11}} },
+        y: { stacked: true, grid:{color:'#f0f0ee'}, ticks:{font:{size:11}} }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          mode: 'index',
+          callbacks: {
+            label: ctx => ctx.raw > 0 ? ` ${ctx.dataset.label.split(':')[0]}: ${ctx.raw}` : null,
+            filter: item => item.raw > 0
+          }
+        }
+      }
+    }
+  });
+
+  // Custom legend
+  const legend = document.getElementById('trend-legend');
+  legend.innerHTML = '';
+  TREND_ORDER.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'legend-item';
+    el.innerHTML = `<div class="legend-dot" style="background:${TREND_COLORS[t]}"></div>${t.split(':')[0]}`;
+    el.onclick = () => setFilter('trend', filterState.trend===t?'':t);
+    legend.appendChild(el);
+  });
+}
+
+// ── Qual Rate by Segment ──────────────────────────────────────────────
+function renderQualBySeg(data) {
+  destroyChart('qualBySeg');
+  const segs = SEGMENTS_ORDER.filter(s=>data.some(r=>r.segment===s));
+  const qualRates = segs.map(s => {
+    const sd = data.filter(r=>r.segment===s);
+    const q = sd.filter(r=>r.qualified==='Qualified').length;
+    return sd.length ? Math.round(q/sd.length*100) : 0;
+  });
+
+  const ctx = document.getElementById('qualBySegChart').getContext('2d');
+  charts['qualBySeg'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: segs,
+      datasets: [{
+        label: 'Qual Rate %',
+        data: qualRates,
+        backgroundColor: segs.map(s => SEG_COLORS[s]||'#94a3b8'),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      onClick: (e, elements) => {
+        if (elements.length) {
+          const s = segs[elements[0].index];
+          setFilter('segment', filterState.segment===s?'':s);
+        }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}% qualified` }}
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:11}} },
+        y: {
+          grid:{color:'#f0f0ee'}, ticks:{font:{size:11}, callback: v=>v+'%'},
+          min:0, max:100
+        }
+      }
+    }
+  });
+}
+
+// ── Owner Chart ──────────────────────────────────────────────
+function renderOwnerChart(data) {
+  destroyChart('ownerChart');
+
+  // Get owners sorted by request count desc
+  const ownerCounts = count(data, 'owner');
+  const owners = Object.entries(ownerCounts).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+
+  // For each owner, count each trend
+  const datasets = TREND_ORDER.map(t => ({
+    label: t,
+    data: owners.map(o => data.filter(r=>r.owner===o && r.trends.includes(t)).length),
+    backgroundColor: TREND_COLORS[t],
+    borderRadius: 2,
+    borderSkipped: false,
+  }));
+  // Add "No Gap" dataset
+  datasets.push({
+    label: 'No Gap Identified',
+    data: owners.map(o => data.filter(r=>r.owner===o && r.trends.includes('No Gap Identified')).length),
+    backgroundColor: TREND_COLORS['No Gap Identified'],
+    borderRadius: 2,
+    borderSkipped: false,
+  });
+
+  const ctx = document.getElementById('ownerChart').getContext('2d');
+  charts['ownerChart'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: owners, datasets },
+    options: {
+      ...chartDefaults,
+      onClick: (e, elements) => {
+        if (elements.length) {
+          const o = owners[elements[0].index];
+          setFilter('owner', filterState.owner===o?'':o);
+        }
+      },
+      scales: {
+        x: { stacked: true, grid:{display:false}, ticks:{font:{size:10}, maxRotation:45} },
+        y: { stacked: true, grid:{color:'#f0f0ee'}, ticks:{font:{size:11}} }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          mode:'index',
+          callbacks: {
+            label: ctx => ctx.raw > 0 ? ` ${ctx.dataset.label.split(':')[0]}: ${ctx.raw}` : null,
+            filter: item => item.raw > 0
+          }
+        }
+      }
+    }
+  });
+
+  // Legend
+  const legend = document.getElementById('owner-legend');
+  legend.innerHTML = '';
+  [...TREND_ORDER, 'No Gap Identified'].forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'legend-item';
+    el.innerHTML = `<div class="legend-dot" style="background:${TREND_COLORS[t]}"></div>${TREND_LABELS_SHORT[t]}`;
+    legend.appendChild(el);
+  });
+}
+
+// ── Table ──────────────────────────────────────────────
+function renderTable(data) {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  document.getElementById('table-count').textContent = `${data.length} request${data.length!==1?'s':''}`;
+
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    const tags = r.trends.map(t =>
+      `<span class="trend-tag ${TREND_TAGS[t]||'tag-clean'}">${t.split(':')[0]}</span>`
+    ).join('');
+    const qBadge = r.qualified==='Qualified'
+      ? `<span class="badge badge-qual">Qualified</span>`
+      : `<span class="badge badge-notqual">Not Qualified</span>`;
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:11px;">${r.num}</td>
+      <td><div class="opp-name" title="${r.opportunity}">${r.opportunity}</div></td>
+      <td style="white-space:nowrap;">${r.owner}</td>
+      <td><span style="font-size:11px;color:var(--muted);">${r.segment}</span></td>
+      <td>${qBadge}</td>
+      <td>${tags}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Master render ──────────────────────────────────────────────
+function renderAll() {
+  const data = getFiltered();
+  renderKPIs(data);
+  renderTrendBar(data);
+  renderQualDonut(data);
+  renderSegmentBar(data);
+  renderTrendBySeg(data);
+  renderQualBySeg(data);
+  renderOwnerChart(data);
+  renderTable(data);
+}
+
+// ── Bootstrap ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initFilters();
+  renderAll();
+});
+</script>
+</body>
+</html>
